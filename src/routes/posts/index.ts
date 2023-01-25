@@ -1,14 +1,19 @@
 import { FastifyPluginAsyncJsonSchemaToTs } from '@fastify/type-provider-json-schema-to-ts';
 import { idParamSchema } from '../../utils/reusedSchemas';
 import { createPostBodySchema, changePostBodySchema } from './schema';
-// import type { PostEntity } from '../../utils/DB/entities/DBPosts';
+import type { PostEntity } from '../../utils/DB/entities/DBPosts';
+
+type CreatePostDTO = Omit<PostEntity, 'id'>;
+type ChangePostDTO = Partial<Omit<PostEntity, 'id' | 'userId'>>;
 
 const plugin: FastifyPluginAsyncJsonSchemaToTs = async (
   fastify
 ): Promise<void> => {
   fastify.get('/', 
-  //async function (request, reply): Promise<PostEntity[]> {}
-  async function (request, reply) {}
+  async function (request, reply): Promise<PostEntity[]> {
+    return await fastify.db.posts.findMany();
+  }
+
   );
 
   fastify.get(
@@ -18,8 +23,17 @@ const plugin: FastifyPluginAsyncJsonSchemaToTs = async (
         params: idParamSchema,
       },
     },
-    //async function (request, reply): Promise<PostEntity> {}
-    async function (request, reply) {}
+    async function (request, reply): Promise<PostEntity> {
+      const {id} = request.params as {id: string};
+
+      const post = await fastify.db.posts.findOne({key: "id", equals: id});
+      if (!post) {
+        throw fastify.httpErrors.notFound('Post not found');
+      }
+
+      return post;
+    }
+
   );
 
   fastify.post(
@@ -29,8 +43,11 @@ const plugin: FastifyPluginAsyncJsonSchemaToTs = async (
         body: createPostBodySchema,
       },
     },
-    // async function (request, reply): Promise<PostEntity> {}
-    async function (request, reply) {}
+    async function (request, reply): Promise<PostEntity> {
+      const post = fastify.db.posts.create(request.body as CreatePostDTO);
+      return post;
+    }
+
   );
 
   fastify.delete(
@@ -40,8 +57,18 @@ const plugin: FastifyPluginAsyncJsonSchemaToTs = async (
         params: idParamSchema,
       },
     },
-    // async function (request, reply): Promise<PostEntity> {}
-    async function (request, reply) {}
+    async function (request, reply): Promise<PostEntity> {
+      const {id} = request.params as {id: string};
+
+      const post = await fastify.db.posts.findOne({key: "id", equals: id});
+      if (!post) {
+        throw fastify.httpErrors.badRequest('Post not found');
+      }
+
+      const mutation = await fastify.db.posts.delete(id);
+      return mutation;
+    }
+
   );
 
   fastify.patch(
@@ -52,8 +79,19 @@ const plugin: FastifyPluginAsyncJsonSchemaToTs = async (
         params: idParamSchema,
       },
     },
-    // async function (request, reply): Promise<PostEntity> {}
-    async function (request, reply) {}
+    async function (request, reply): Promise<PostEntity> {
+      const {id} = request.params as {id: string};
+
+      const post = await fastify.db.posts.findOne({key: "id", equals: id});
+      if (!post) {
+        throw fastify.httpErrors.badRequest('Post not found');
+      }
+
+      const mutation = await fastify.db.posts.change(id, request.body as ChangePostDTO);
+      return mutation; 
+
+    }
+
   );
 };
 
