@@ -27,7 +27,7 @@ const plugin: FastifyPluginAsyncJsonSchemaToTs = async (
         params: idParamSchema,
       },
     },
-    async function (request, reply): Promise<UserEntity | null>  {
+    async function (request, reply): Promise<UserEntity>  {
       const {id} = request.params as {id: string};
       const user = await fastify.db.users.findOne({key: "id", equals: id});
      
@@ -64,14 +64,42 @@ const plugin: FastifyPluginAsyncJsonSchemaToTs = async (
         params: idParamSchema,
       },
     },
-    async function (request, reply): Promise<UserEntity | null> {
+    async function (request, reply): Promise<UserEntity> {
       const {id} = request.params as {id: string};
 
       const user = await fastify.db.users.findOne({key: "id", equals: id});
+
       if (user) {
-        const query = await fastify.db.users.delete(id);
-        return query;
+        const relatedProfile = await fastify.db.profiles.findOne({
+          key: "userId", equals: id
+        });
+
+        if (relatedProfile) {
+          await fastify.db.profiles.delete(relatedProfile.id);
+        }
+
+        const relatedPosts = await fastify.db.posts.findMany({
+          key: "userId", equals: id
+        });
+
+        for (const post of relatedPosts) {
+          await fastify.db.posts.delete(post.id);
+        }
+
+        const subscribers = await fastify.db.users.findMany({
+          key: "subscribedToUserIds", equals: [id]
+        });
+
+        for (const sub of subscribers) {
+          await  fastify.db.users.change(sub.id, {
+            subscribedToUserIds: sub.subscribedToUserIds.filter(el=>el!==id)
+          })
+        }
+
+        const mutation = await fastify.db.users.delete(id);
+        return mutation;
       }
+
       throw fastify.httpErrors.badRequest('User not found');
 
     }
@@ -85,14 +113,16 @@ const plugin: FastifyPluginAsyncJsonSchemaToTs = async (
         params: idParamSchema,
       },
     },
-    async function (request, reply): Promise<UserEntity | null> {
-      const {id} = request.params as {id: string};
-      const {userId} = request.body as {userId: string}
+    async function (request, reply): Promise<UserEntity> {
+      const {id: user1ID} = request.params as {id: string};
+      const {userId: user2ID} = request.body as {userId: string};
 
-      const user = await fastify.db.users.findOne({key: "id", equals: userId});
+      const user2 = await fastify.db.users.findOne({key: "id", equals: user2ID});
 
-      if (user) {
-        const query = await fastify.db.users.change(userId, {subscribedToUserIds : [...user.subscribedToUserIds, id]})
+      if (user2) {
+        const query = await fastify.db.users.change(user2ID, {
+          subscribedToUserIds : [...user2.subscribedToUserIds, user1ID]
+        })
         return query;
       }
       throw fastify.httpErrors.notFound('User not found');
@@ -109,24 +139,24 @@ const plugin: FastifyPluginAsyncJsonSchemaToTs = async (
       },
     },
     async function (request, reply): Promise<UserEntity> {
-      const {id} = request.params as {id: string};
-      const {userId} = request.body as {userId: string}
+      const {id: user1ID} = request.params as {id: string};
+      const {userId: user2ID} = request.body as {userId: string};
 
-      const user = await fastify.db.users.findOne({key: "id", equals: userId});
-      const subscribeOnUser = await fastify.db.users.findOne({key: "id", equals: id});
+      const user1 = await fastify.db.users.findOne({key: "id", equals: user1ID});
+      const user2 = await fastify.db.users.findOne({key: "id", equals: user2ID});
 
-      if (!subscribeOnUser) {
+      if (!user2) {
         throw fastify.httpErrors.badRequest('User not found')
       }
 
-      if (user && subscribeOnUser) {
+      if (user1 && user2) {
 
-        if (!user.subscribedToUserIds.includes(id)) {
+        if (!user2.subscribedToUserIds.includes(user1ID)) {
           throw fastify.httpErrors.badRequest('body.userId is valid but our user is not following him');
         }
 
-        const subscribes = user.subscribedToUserIds.filter(el=>el!==id )
-        const query = await fastify.db.users.change(userId, {subscribedToUserIds : [...subscribes]})
+        const subscribes = user2.subscribedToUserIds.filter(el=>el!==user1ID )
+        const query = await fastify.db.users.change(user2ID, {subscribedToUserIds : [...subscribes]})
         return query;
 
       }
@@ -151,6 +181,7 @@ const plugin: FastifyPluginAsyncJsonSchemaToTs = async (
         const query = await fastify.db.users.change(id, request.body as ChangeUserDTO);
         return query;
       }
+
       throw fastify.httpErrors.badRequest('User not found');
 
     }
