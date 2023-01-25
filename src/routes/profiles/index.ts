@@ -3,12 +3,17 @@ import { idParamSchema } from '../../utils/reusedSchemas';
 import { createProfileBodySchema, changeProfileBodySchema } from './schema';
 import type { ProfileEntity } from '../../utils/DB/entities/DBProfiles';
 
+
 const plugin: FastifyPluginAsyncJsonSchemaToTs = async (
   fastify
 ): Promise<void> => {
-  fastify.get('/', async function (request, reply): Promise<
-    ProfileEntity[]
-  > {});
+  fastify.get('/', 
+  async function (request, reply) {
+    const query = fastify.db.profiles.findMany();
+    reply.send(query);
+  }
+
+  );
 
   fastify.get(
     '/:id',
@@ -17,7 +22,11 @@ const plugin: FastifyPluginAsyncJsonSchemaToTs = async (
         params: idParamSchema,
       },
     },
-    async function (request, reply): Promise<ProfileEntity> {}
+    async function (request, reply): Promise<ProfileEntity | null> {
+      const query = fastify.db.profiles.findOne(request.id)
+      return query;
+    }
+    
   );
 
   fastify.post(
@@ -27,7 +36,8 @@ const plugin: FastifyPluginAsyncJsonSchemaToTs = async (
         body: createProfileBodySchema,
       },
     },
-    async function (request, reply): Promise<ProfileEntity> {}
+    //async function (request, reply): Promise<ProfileEntity> {}
+    async function (request, reply) {}
   );
 
   fastify.delete(
@@ -37,7 +47,8 @@ const plugin: FastifyPluginAsyncJsonSchemaToTs = async (
         params: idParamSchema,
       },
     },
-    async function (request, reply): Promise<ProfileEntity> {}
+    //async function (request, reply): Promise<ProfileEntity> {}
+    async function (request, reply) {}
   );
 
   fastify.patch(
@@ -48,7 +59,8 @@ const plugin: FastifyPluginAsyncJsonSchemaToTs = async (
         params: idParamSchema,
       },
     },
-    async function (request, reply): Promise<ProfileEntity> {}
+    //async function (request, reply): Promise<ProfileEntity> {}
+    async function (request, reply) {}
   );
 };
 
