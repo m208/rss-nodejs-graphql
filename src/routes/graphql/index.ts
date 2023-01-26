@@ -2,6 +2,10 @@ import { FastifyPluginAsyncJsonSchemaToTs } from '@fastify/type-provider-json-sc
 import { graphql, GraphQLObjectType, GraphQLString, GraphQLSchema, GraphQLList } from 'graphql';
 import { graphqlBodySchema } from './schema';
 import fetch from 'node-fetch';
+import { UserEntity } from '../../utils/DB/entities/DBUsers';
+
+type CreateUserDTO = Omit<UserEntity, 'id' | 'subscribedToUserIds'>;
+// type ChangeUserDTO = Partial<Omit<UserEntity, 'id'>>;
 
 const UserType = new GraphQLObjectType({
   name: 'User',
@@ -35,8 +39,33 @@ const Query = new GraphQLObjectType({
   }
 });
 
+const Mutation = new GraphQLObjectType({
+  name: 'Mutation',
+  fields: {
+    addUser: {
+      type: UserType,
+      args: { 
+        firstName: { type: GraphQLString },
+        lastName: { type: GraphQLString },
+        email: { type: GraphQLString },
+      },
+      async resolve(parent, args: CreateUserDTO) {
+        const user = await (await fetch(routes.users, {
+          method: 'post',
+          body: JSON.stringify(args),
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        })).json();
+        return user;
+      },
+    },
+  }
+});
+
 const schema = new GraphQLSchema({
 	query: Query,
+	mutation: Mutation,
 });
 
 const routes = {
