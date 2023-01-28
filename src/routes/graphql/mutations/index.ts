@@ -4,13 +4,14 @@ import { PostEntity } from "../../../utils/DB/entities/DBPosts";
 import { ProfileEntity } from "../../../utils/DB/entities/DBProfiles";
 import { UserEntity } from "../../../utils/DB/entities/DBUsers";
 import { postCreation } from "../../../utils/dbResolvers/posts";
-import { profileCreation } from "../../../utils/dbResolvers/profiles";
+import { profileCreation, profileUpdating } from "../../../utils/dbResolvers/profiles";
 import { userUpdating } from "../../../utils/dbResolvers/users";
 import { PostType, ProfileType, UserType } from "../gqlTypes";
 
 type CreateUserDTO = Omit<UserEntity, 'id' | 'subscribedToUserIds'>;
 type ChangeUserDTO = Partial<Omit<UserEntity, 'id'>>;
 type CreateProfileDTO = Omit<ProfileEntity, "id">;
+type ChangeProfileDTO = Partial<Omit<ProfileEntity, "id" | "userId">>;
 
 type CreatePostDTO = Omit<PostEntity, 'id'>;
 
@@ -63,6 +64,28 @@ export const Mutation = new GraphQLObjectType({
         },
         async resolve(parent, args, context: DB) {
           const query = profileCreation(context, args as CreateProfileDTO);
+          if (query instanceof Error) {
+            throw query;
+          }
+          return query;
+        }, 
+      },
+
+      updateProfile: {
+        type: ProfileType,
+        args: { 
+          id: { type: new GraphQLNonNull(GraphQLString) },
+          avatar: { type: GraphQLString },
+          sex: { type: GraphQLString },
+          birthday: { type: GraphQLInt },
+          country: { type: GraphQLString },
+          street: { type: GraphQLString },
+          city: { type: GraphQLString },
+          memberTypeId: { type: GraphQLString },
+          userId: { type: GraphQLString },
+        },
+        async resolve(parent, args, context: DB) {
+          const query = profileUpdating(context, args.id, args as ChangeProfileDTO);
           if (query instanceof Error) {
             throw query;
           }

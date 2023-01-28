@@ -2,7 +2,7 @@ import DB from "../DB/DB";
 import { ProfileEntity } from "../DB/entities/DBProfiles";
 
 type CreateProfileDTO = Omit<ProfileEntity, "id">;
-//type ChangeProfileDTO = Partial<Omit<ProfileEntity, "id" | "userId">>;
+type ChangeProfileDTO = Partial<Omit<ProfileEntity, "id" | "userId">>;
 
 export const profileCreation = async (db: DB, data: CreateProfileDTO) => {
     
@@ -33,4 +33,25 @@ export const profileCreation = async (db: DB, data: CreateProfileDTO) => {
       }
       
       return Error("User already has a profile");
+}
+
+export const profileUpdating = async (db: DB, id: string, data: ChangeProfileDTO) => {
+
+      const profile = await db.profiles.findOne({
+        key: "id",
+        equals: id,
+      });
+
+      if (profile) {
+        const profileDTO = profile as CreateProfileDTO;
+        const profileData = {
+          ...profileDTO,
+          ...data
+        }
+        
+        const query = await db.profiles.change(id, profileData);
+        return query;
+      }
+
+      return Error('Profile not found');
 }
