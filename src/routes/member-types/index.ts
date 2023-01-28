@@ -2,6 +2,9 @@ import { FastifyPluginAsyncJsonSchemaToTs } from '@fastify/type-provider-json-sc
 import { idParamSchema } from '../../utils/reusedSchemas';
 import { changeMemberTypeBodySchema } from './schema';
 import type { MemberTypeEntity } from '../../utils/DB/entities/DBMemberTypes';
+import { memberTypeUpdating } from '../../utils/dbResolvers/memberTypes';
+
+type ChangeMemberTypeDTO = Partial<Omit<MemberTypeEntity, 'id'>>;
 
 const plugin: FastifyPluginAsyncJsonSchemaToTs = async (
   fastify
@@ -41,11 +44,13 @@ const plugin: FastifyPluginAsyncJsonSchemaToTs = async (
     async function (request, reply): Promise<MemberTypeEntity> {
       const {id} = request.params as {id: string};
 
-      const query = await fastify.db.memberTypes.findOne({key: "id", equals: id});
-      if (!query) throw fastify.httpErrors.badRequest('User not found');
+      const query = await memberTypeUpdating(fastify.db, id, request.body as ChangeMemberTypeDTO);
+      
+      if (query instanceof Error) {
+        throw fastify.httpErrors.badRequest(query.message);
+      }
+      return query;
 
-      const mutation = await fastify.db.memberTypes.change(id, request.body as Partial<Omit<MemberTypeEntity, "id">>);
-      return mutation;
     }
 
   );

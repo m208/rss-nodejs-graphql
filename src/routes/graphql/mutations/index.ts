@@ -1,12 +1,14 @@
 import { GraphQLInt, GraphQLList, GraphQLNonNull, GraphQLObjectType, GraphQLString } from "graphql";
 import DB from "../../../utils/DB/DB";
+import { MemberTypeEntity } from "../../../utils/DB/entities/DBMemberTypes";
 import { PostEntity } from "../../../utils/DB/entities/DBPosts";
 import { ProfileEntity } from "../../../utils/DB/entities/DBProfiles";
 import { UserEntity } from "../../../utils/DB/entities/DBUsers";
+import { memberTypeUpdating } from "../../../utils/dbResolvers/memberTypes";
 import { postCreation, postUpdating } from "../../../utils/dbResolvers/posts";
 import { profileCreation, profileUpdating } from "../../../utils/dbResolvers/profiles";
 import { userUpdating } from "../../../utils/dbResolvers/users";
-import { PostType, ProfileType, UserType } from "../gqlTypes";
+import { MemberTypeType, PostType, ProfileType, UserType } from "../gqlTypes";
 
 type CreateUserDTO = Omit<UserEntity, 'id' | 'subscribedToUserIds'>;
 type ChangeUserDTO = Partial<Omit<UserEntity, 'id'>>;
@@ -15,6 +17,7 @@ type ChangeProfileDTO = Partial<Omit<ProfileEntity, "id" | "userId">>;
 
 type CreatePostDTO = Omit<PostEntity, 'id'>;
 type ChangePostDTO = Partial<Omit<PostEntity, 'id' | 'userId'>>;
+type ChangeMemberTypeDTO = Partial<Omit<MemberTypeEntity, 'id'>>;
 
 export const Mutation = new GraphQLObjectType({
     name: 'Mutation',
@@ -119,6 +122,22 @@ export const Mutation = new GraphQLObjectType({
         },
         async resolve(parent, args, context: DB) {
           const query = await postUpdating(context, args.id, args as ChangePostDTO);
+          if (query instanceof Error) {
+            throw query;
+          }
+          return query;
+        },
+      },
+
+      updateMemberType: {
+        type: MemberTypeType,
+        args: { 
+          id: { type: new GraphQLNonNull(GraphQLString) },
+          discount: { type: GraphQLInt },
+          monthPostsLimit: { type: GraphQLInt },
+        },
+        async resolve(parent, args, context: DB) {
+          const query = await memberTypeUpdating(context, args.id, args as ChangeMemberTypeDTO);
           if (query instanceof Error) {
             throw query;
           }
