@@ -3,20 +3,18 @@ import { graphql, GraphQLObjectType, GraphQLString, GraphQLSchema, GraphQLList }
 import { graphqlBodySchema } from './schema';
 import { UserEntity } from '../../utils/DB/entities/DBUsers';
 import DB from '../../utils/DB/DB';
+import { UserType } from './gqlTypes';
 
 type CreateUserDTO = Omit<UserEntity, 'id' | 'subscribedToUserIds'>;
 type ChangeUserDTO = Partial<Omit<UserEntity, 'id'>>;
 
-const UserType = new GraphQLObjectType({
-  name: 'User',
-  fields: () => ({
-    id: { type: GraphQLString },
-    firstName: { type: GraphQLString },
-    lastName: { type: GraphQLString },
-    email: { type: GraphQLString },
-    subscribedToUserIds: { type: new GraphQLList(GraphQLString)},
-  }),
-});
+type VariableValues = { [variable: string]: string };
+
+type TgraphqlBodySchema = {
+  query: string | undefined;
+  mutation: string;
+  variables: VariableValues; 
+}
 
 const Query = new GraphQLObjectType({
   name: 'Query',
@@ -24,7 +22,8 @@ const Query = new GraphQLObjectType({
     user: {
       type: UserType,
       args: { id: { type: GraphQLString } },
-      async resolve(parent, args, context: DB) {
+      async resolve(parent, args, context: DB, variables) {
+        //console.log(variables.variableValues);
         const user = await context.users.findOne({key: "id", equals: args.id});
         return user;
       },
@@ -49,8 +48,12 @@ const Mutation = new GraphQLObjectType({
         lastName: { type: GraphQLString },
         email: { type: GraphQLString },
       },
-      async resolve(parent, args: CreateUserDTO, context: DB) {
-        const user = await context.users.create(args);
+      async resolve(parent, args: CreateUserDTO, context: DB, variables) {
+        // console.log('##########################');
+        // console.log(variables.variableValues);
+        // console.log('##########################');
+        
+        const user = await context.users.create(variables.variableValues as CreateUserDTO);
         return user;
       },
     },
@@ -86,11 +89,6 @@ const schema = new GraphQLSchema({
 	mutation: Mutation,
 });
 
-type TgraphqlBodySchema = {
-  query: string;
-  mutation: string;
-  variables: object;
-}
 
 const plugin: FastifyPluginAsyncJsonSchemaToTs = async (
   fastify
@@ -103,12 +101,16 @@ const plugin: FastifyPluginAsyncJsonSchemaToTs = async (
       },
     },
     async function (request, reply) {
-      const { query } = request.body as TgraphqlBodySchema;
+      
+      // TODO: fix env problem !
+      const { query, variables } = request.body as TgraphqlBodySchema;   
+
 
       return await graphql({
         schema: schema,
-        source: query,
+        source: query!,
         contextValue: fastify.db,
+        variableValues: variables
       });
 
     }
