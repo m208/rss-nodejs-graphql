@@ -2,6 +2,7 @@ import { FastifyPluginAsyncJsonSchemaToTs } from "@fastify/type-provider-json-sc
 import { idParamSchema } from "../../utils/reusedSchemas";
 import { createProfileBodySchema, changeProfileBodySchema } from "./schema";
 import type { ProfileEntity } from "../../utils/DB/entities/DBProfiles";
+import { profileCreation } from "../../utils/dbResolvers/profiles";
 
 type CreateProfileDTO = Omit<ProfileEntity, "id">;
 type ChangeProfileDTO = Partial<Omit<ProfileEntity, "id" | "userId">>;
@@ -43,37 +44,13 @@ const plugin: FastifyPluginAsyncJsonSchemaToTs = async (
     async function (request, reply): Promise<ProfileEntity> {
       const data = request.body as CreateProfileDTO;
 
-      const user = await fastify.db.users.findOne({
-        key: "id",
-        equals: data.userId,
-      });
-      if (!user) {
-        throw fastify.httpErrors.badRequest("User with such id not found");
+      const query = await profileCreation(fastify.db, data);
+
+      if (query instanceof Error) {
+        throw fastify.httpErrors.badRequest(query.message);
       }
+      return query;
 
-      const memberType = await fastify.db.memberTypes.findOne({
-        key: "id",
-        equals: data.memberTypeId,
-      });
-      if (!memberType) {
-        throw fastify.httpErrors.badRequest(
-          "memberType with such id not found"
-        );
-      }
-
-      const profile = await fastify.db.profiles.findOne({
-        key: "userId",
-        equals: data.userId,
-      });
-
-      if (!profile) {
-        const profile = await fastify.db.profiles.create(
-          request.body as CreateProfileDTO
-        );
-        return profile;
-      }
-
-      throw fastify.httpErrors.badRequest("User already has a profile");
     }
   );
 

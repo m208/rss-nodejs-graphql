@@ -1,15 +1,19 @@
-import { GraphQLList, GraphQLObjectType, GraphQLString } from "graphql";
+import { GraphQLInt, GraphQLList, GraphQLObjectType, GraphQLString } from "graphql";
 import DB from "../../../utils/DB/DB";
+import { ProfileEntity } from "../../../utils/DB/entities/DBProfiles";
 import { UserEntity } from "../../../utils/DB/entities/DBUsers";
-import { UserType } from "../gqlTypes";
+import { profileCreation } from "../../../utils/dbResolvers/profiles";
+import { ProfileType, UserType } from "../gqlTypes";
 
 type CreateUserDTO = Omit<UserEntity, 'id' | 'subscribedToUserIds'>;
 type ChangeUserDTO = Partial<Omit<UserEntity, 'id'>>;
+type CreateProfileDTO = Omit<ProfileEntity, "id">;
 
 export const Mutation = new GraphQLObjectType({
     name: 'Mutation',
     fields: {
-      addUser: {
+
+      createUser: {
         type: UserType,
         args: { 
           firstName: { type: GraphQLString },
@@ -25,6 +29,7 @@ export const Mutation = new GraphQLObjectType({
           return user;
         },
       },
+
       updateUser: {
         type: UserType,
         args: { 
@@ -39,15 +44,28 @@ export const Mutation = new GraphQLObjectType({
           return user;
         },
       },
-      deleteUser: {
-        type: UserType,
+
+      createProfile: {
+        type: ProfileType,
         args: { 
           id: { type: GraphQLString },
+          avatar: { type: GraphQLString },
+          sex: { type: GraphQLString },
+          birthday: { type: GraphQLInt },
+          country: { type: GraphQLString },
+          street: { type: GraphQLString },
+          city: { type: GraphQLString },
+          memberTypeId: { type: GraphQLString },
+          userId: { type: GraphQLString },
         },
-        async resolve(parent, args, context: DB) {
-          const user = await context.users.change(args.id, args as ChangeUserDTO);
-          return user;
+        async resolve(parent, args, context: DB, variables) {
+          const query = profileCreation(context, args as CreateProfileDTO);
+          if (query instanceof Error) {
+            throw query;
+          }
+          return query;
         },
       },
+
     }
   });
