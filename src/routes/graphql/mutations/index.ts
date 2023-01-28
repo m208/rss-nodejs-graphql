@@ -3,7 +3,7 @@ import DB from "../../../utils/DB/DB";
 import { PostEntity } from "../../../utils/DB/entities/DBPosts";
 import { ProfileEntity } from "../../../utils/DB/entities/DBProfiles";
 import { UserEntity } from "../../../utils/DB/entities/DBUsers";
-import { postCreation } from "../../../utils/dbResolvers/posts";
+import { postCreation, postUpdating } from "../../../utils/dbResolvers/posts";
 import { profileCreation, profileUpdating } from "../../../utils/dbResolvers/profiles";
 import { userUpdating } from "../../../utils/dbResolvers/users";
 import { PostType, ProfileType, UserType } from "../gqlTypes";
@@ -14,6 +14,7 @@ type CreateProfileDTO = Omit<ProfileEntity, "id">;
 type ChangeProfileDTO = Partial<Omit<ProfileEntity, "id" | "userId">>;
 
 type CreatePostDTO = Omit<PostEntity, 'id'>;
+type ChangePostDTO = Partial<Omit<PostEntity, 'id' | 'userId'>>;
 
 export const Mutation = new GraphQLObjectType({
     name: 'Mutation',
@@ -102,6 +103,22 @@ export const Mutation = new GraphQLObjectType({
         },
         async resolve(parent, args: CreatePostDTO, context: DB) {
           const query = await postCreation(context, args);
+          if (query instanceof Error) {
+            throw query;
+          }
+          return query;
+        },
+      },
+
+      updatePost: {
+        type: PostType,
+        args: { 
+          id: { type: new GraphQLNonNull(GraphQLString) },
+          title: { type: GraphQLString },
+          content: { type: GraphQLString },
+        },
+        async resolve(parent, args, context: DB) {
+          const query = await postUpdating(context, args.id, args as ChangePostDTO);
           if (query instanceof Error) {
             throw query;
           }
