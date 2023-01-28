@@ -2,6 +2,7 @@ import { FastifyPluginAsyncJsonSchemaToTs } from '@fastify/type-provider-json-sc
 import { idParamSchema } from '../../utils/reusedSchemas';
 import { createPostBodySchema, changePostBodySchema } from './schema';
 import type { PostEntity } from '../../utils/DB/entities/DBPosts';
+import { postCreation } from '../../utils/dbResolvers/posts';
 
 type CreatePostDTO = Omit<PostEntity, 'id'>;
 type ChangePostDTO = Partial<Omit<PostEntity, 'id' | 'userId'>>;
@@ -44,8 +45,12 @@ const plugin: FastifyPluginAsyncJsonSchemaToTs = async (
       },
     },
     async function (request, reply): Promise<PostEntity> {
-      const post = fastify.db.posts.create(request.body as CreatePostDTO);
-      return post;
+      const query = await postCreation(fastify.db, request.body as CreatePostDTO)
+
+      if (query instanceof Error) {
+        throw fastify.httpErrors.badRequest(query.message);
+      }
+      return query;
     }
 
   );
