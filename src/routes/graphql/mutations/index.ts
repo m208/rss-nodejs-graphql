@@ -7,8 +7,8 @@ import { UserEntity } from "../../../utils/DB/entities/DBUsers";
 import { memberTypeUpdating } from "../../../utils/dbResolvers/memberTypes";
 import { postCreation, postUpdating } from "../../../utils/dbResolvers/posts";
 import { profileCreation, profileUpdating } from "../../../utils/dbResolvers/profiles";
-import { userUpdating } from "../../../utils/dbResolvers/users";
-import { MemberTypeType, PostType, ProfileType, UserType } from "../gqlTypes";
+import { userSubscribing, userUnSubscribing, userUpdating } from "../../../utils/dbResolvers/users";
+import { MemberTypeType, PostType, ProfileType,  UserType } from "../gqlTypes";
 
 type CreateUserDTO = Omit<UserEntity, 'id' | 'subscribedToUserIds'>;
 type ChangeUserDTO = Partial<Omit<UserEntity, 'id'>>;
@@ -144,6 +144,41 @@ export const Mutation = new GraphQLObjectType({
           return query;
         },
       },
+
+      subscribeUser: {
+        type: UserType,
+        args: { 
+          id: { type: new GraphQLNonNull(GraphQLString) },
+          subscriberId: { type: new GraphQLNonNull(GraphQLString) },
+          firstName: { type: GraphQLString },
+          lastName: { type: GraphQLString },
+          email: { type: GraphQLString },
+          subscribedToUserIds: { type: new GraphQLList(GraphQLString)},
+        },
+        async resolve(parent, args, context: DB) {
+          const query = await userSubscribing(context, args.id, args.subscriberId);
+          if (query instanceof Error) {
+            throw query;
+          }
+          return query;
+        },
+      },
+
+      unSubscribeUser: {
+        type: UserType,
+        args: { 
+          id: { type: new GraphQLNonNull(GraphQLString) },
+          subscriberId: { type: new GraphQLNonNull(GraphQLString) },
+        },
+        async resolve(parent, args, context: DB) {
+          const query = await userUnSubscribing(context, args.id, args.subscriberId );
+          if (query instanceof Error) {
+            throw query;
+          }
+          return query;
+        },
+      },
+
 
     }
   });

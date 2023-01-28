@@ -6,7 +6,7 @@ import {
   subscribeBodySchema,
 } from './schemas';
 import type { UserEntity } from '../../utils/DB/entities/DBUsers';
-import { userDeletion, userUpdating } from '../../utils/dbResolvers/users';
+import { userDeletion, userSubscribing, userUnSubscribing, userUpdating } from '../../utils/dbResolvers/users';
 
 
 type CreateUserDTO = Omit<UserEntity, 'id' | 'subscribedToUserIds'>;
@@ -84,15 +84,13 @@ const plugin: FastifyPluginAsyncJsonSchemaToTs = async (
       const {id: user1ID} = request.params as {id: string};
       const {userId: user2ID} = request.body as {userId: string};
 
-      const user2 = await fastify.db.users.findOne({key: "id", equals: user2ID});
+      const query = await userSubscribing(fastify.db, user1ID, user2ID);
 
-      if (user2) {
-        const query = await fastify.db.users.change(user2ID, {
-          subscribedToUserIds : [...user2.subscribedToUserIds, user1ID]
-        })
-        return query;
+      if (query instanceof Error) {
+        throw fastify.httpErrors.badRequest(query.message);
       }
-      throw fastify.httpErrors.notFound('User not found');
+      return query;
+      
     }
 
   );
@@ -109,25 +107,13 @@ const plugin: FastifyPluginAsyncJsonSchemaToTs = async (
       const {id: user1ID} = request.params as {id: string};
       const {userId: user2ID} = request.body as {userId: string};
 
-      const user1 = await fastify.db.users.findOne({key: "id", equals: user1ID});
-      const user2 = await fastify.db.users.findOne({key: "id", equals: user2ID});
+      const query = await userUnSubscribing(fastify.db, user1ID, user2ID);
 
-      if (!user2) {
-        throw fastify.httpErrors.badRequest('User not found')
+      if (query instanceof Error) {
+        throw fastify.httpErrors.badRequest(query.message);
       }
+      return query;
 
-      if (user1 && user2) {
-
-        if (!user2.subscribedToUserIds.includes(user1ID)) {
-          throw fastify.httpErrors.badRequest('body.userId is valid but our user is not following him');
-        }
-
-        const subscribes = user2.subscribedToUserIds.filter(el=>el!==user1ID )
-        const query = await fastify.db.users.change(user2ID, {subscribedToUserIds : [...subscribes]})
-        return query;
-
-      }
-      throw fastify.httpErrors.notFound('User not found');
     }
 
   );

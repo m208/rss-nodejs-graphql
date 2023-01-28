@@ -8,6 +8,8 @@ export const UserType = new GraphQLObjectType({
       lastName: { type: GraphQLString },
       email: { type: GraphQLString },
       subscribedToUserIds: { type: new GraphQLList(GraphQLString)},
+      
+      subscriberId: {type: GraphQLString}
     }),
   });
 
@@ -44,3 +46,4 @@ export const PostType = new GraphQLObjectType({
       userId: { type: GraphQLString },
     }),
   });
+

@@ -61,3 +61,34 @@ export const userDeletion = async (db: DB, id: string) => {
 
       return null;
 }
+
+export const userSubscribing = async (db: DB, user1ID: string, user2ID: string) => {
+    const user1 = await db.users.findOne({key: "id", equals: user1ID});
+    const user2 = await db.users.findOne({key: "id", equals: user2ID});
+
+    if (user1 && user2) {
+      const query = await db.users.change(user2ID, {
+        subscribedToUserIds : [...user2.subscribedToUserIds, user1ID]
+      })
+      return query;
+    }
+
+    return Error ("User not existed");
+}
+
+export const userUnSubscribing = async (db: DB, user1ID: string, user2ID: string) => {
+    const user1 = await db.users.findOne({key: "id", equals: user1ID});
+    const user2 = await db.users.findOne({key: "id", equals: user2ID});
+
+    if (user1 && user2) {
+      if (!user2.subscribedToUserIds.includes(user1ID)) {
+        return Error('body.userId is valid but our user is not following him');
+      }
+
+      const subscribes = user2.subscribedToUserIds.filter(el=>el!==user1ID )
+      const query = await db.users.change(user2ID, {subscribedToUserIds : [...subscribes]})
+      return query;
+    }
+
+    return Error ("User not existed");
+}
