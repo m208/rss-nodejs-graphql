@@ -5,6 +5,7 @@ import { ProfileEntity } from "../../../utils/DB/entities/DBProfiles";
 import { UserEntity } from "../../../utils/DB/entities/DBUsers";
 import { postCreation } from "../../../utils/dbResolvers/posts";
 import { profileCreation } from "../../../utils/dbResolvers/profiles";
+import { userUpdating } from "../../../utils/dbResolvers/users";
 import { PostType, ProfileType, UserType } from "../gqlTypes";
 
 type CreateUserDTO = Omit<UserEntity, 'id' | 'subscribedToUserIds'>;
@@ -33,15 +34,18 @@ export const Mutation = new GraphQLObjectType({
       updateUser: {
         type: UserType,
         args: { 
-          id: { type: GraphQLString },
+          id: { type: new GraphQLNonNull(GraphQLString) },
           firstName: { type: GraphQLString },
           lastName: { type: GraphQLString },
           email: { type: GraphQLString },
           subscribedToUserIds: { type: new GraphQLList(GraphQLString)},
         },
         async resolve(parent, args, context: DB) {
-          const user = await context.users.change(args.id, args as ChangeUserDTO);
-          return user;
+          const query = await userUpdating(context, args.id, args as ChangeUserDTO);
+          if (query instanceof Error) {
+            throw query;
+          }
+          return query;
         },
       },
 

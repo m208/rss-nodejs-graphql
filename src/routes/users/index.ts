@@ -6,7 +6,7 @@ import {
   subscribeBodySchema,
 } from './schemas';
 import type { UserEntity } from '../../utils/DB/entities/DBUsers';
-import { userDeletion } from '../../utils/dbResolvers/users';
+import { userDeletion, userUpdating } from '../../utils/dbResolvers/users';
 
 
 type CreateUserDTO = Omit<UserEntity, 'id' | 'subscribedToUserIds'>;
@@ -142,14 +142,13 @@ const plugin: FastifyPluginAsyncJsonSchemaToTs = async (
     },
     async function (request, reply): Promise<UserEntity> {
       const {id} = request.params as {id: string};
-      const user = await fastify.db.users.findOne({key: "id", equals: id});
 
-      if (user) {
-        const query = await fastify.db.users.change(id, request.body as ChangeUserDTO);
-        return query;
+      const query = await userUpdating(fastify.db, id, request.body as ChangeUserDTO);
+      
+      if (query instanceof Error) {
+        throw fastify.httpErrors.badRequest(query.message);
       }
-
-      throw fastify.httpErrors.badRequest('User not found');
+      return query;
 
     }
 
