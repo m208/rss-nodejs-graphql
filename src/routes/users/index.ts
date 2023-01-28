@@ -6,6 +6,7 @@ import {
   subscribeBodySchema,
 } from './schemas';
 import type { UserEntity } from '../../utils/DB/entities/DBUsers';
+import { userDeletion } from '../../utils/dbResolvers/users';
 
 
 type CreateUserDTO = Omit<UserEntity, 'id' | 'subscribedToUserIds'>;
@@ -48,10 +49,6 @@ const plugin: FastifyPluginAsyncJsonSchemaToTs = async (
       },
     },
     async function (request, reply): Promise<UserEntity> {
-
-      // const validationResult = request.validateInput(request.body, createUserBodySchema)
-      // console.log(validationResult)
-
         const user = await fastify.db.users.create(request.body as CreateUserDTO);
         return user;
     }
@@ -67,38 +64,8 @@ const plugin: FastifyPluginAsyncJsonSchemaToTs = async (
     async function (request, reply): Promise<UserEntity> {
       const {id} = request.params as {id: string};
 
-      const user = await fastify.db.users.findOne({key: "id", equals: id});
-
-      if (user) {
-        const relatedProfile = await fastify.db.profiles.findOne({
-          key: "userId", equals: id
-        });
-
-        if (relatedProfile) {
-          await fastify.db.profiles.delete(relatedProfile.id);
-        }
-
-        const relatedPosts = await fastify.db.posts.findMany({
-          key: "userId", equals: id
-        });
-
-        for (const post of relatedPosts) {
-          await fastify.db.posts.delete(post.id);
-        }
-
-        const subscribers = await fastify.db.users.findMany({
-          key: "subscribedToUserIds", equals: [id]
-        });
-
-        for (const sub of subscribers) {
-          await  fastify.db.users.change(sub.id, {
-            subscribedToUserIds: sub.subscribedToUserIds.filter(el=>el!==id)
-          })
-        }
-
-        const mutation = await fastify.db.users.delete(id);
-        return mutation;
-      }
+      const query = await userDeletion(fastify.db, id);
+      if (query) return query;
 
       throw fastify.httpErrors.badRequest('User not found');
 

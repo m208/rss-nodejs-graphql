@@ -1,11 +1,11 @@
 import { FastifyPluginAsyncJsonSchemaToTs } from '@fastify/type-provider-json-schema-to-ts';
 import { graphql, GraphQLObjectType, GraphQLString, GraphQLSchema, GraphQLList } from 'graphql';
 import { graphqlBodySchema } from './schema';
-import fetch from 'node-fetch';
 import { UserEntity } from '../../utils/DB/entities/DBUsers';
+import DB from '../../utils/DB/DB';
 
 type CreateUserDTO = Omit<UserEntity, 'id' | 'subscribedToUserIds'>;
-// type ChangeUserDTO = Partial<Omit<UserEntity, 'id'>>;
+type ChangeUserDTO = Partial<Omit<UserEntity, 'id'>>;
 
 const UserType = new GraphQLObjectType({
   name: 'User',
@@ -14,7 +14,7 @@ const UserType = new GraphQLObjectType({
     firstName: { type: GraphQLString },
     lastName: { type: GraphQLString },
     email: { type: GraphQLString },
-    // subscribedToUserIds: { type: GraphQLList },
+    subscribedToUserIds: { type: new GraphQLList(GraphQLString)},
   }),
 });
 
@@ -24,15 +24,15 @@ const Query = new GraphQLObjectType({
     user: {
       type: UserType,
       args: { id: { type: GraphQLString } },
-      async resolve(parent, args) {
-        const user = await (await fetch(`${routes.users}/${args.id}`)).json();
+      async resolve(parent, args, context: DB) {
+        const user = await context.users.findOne({key: "id", equals: args.id});
         return user;
       },
     },
     users: {
       type: new GraphQLList(UserType),
-      async resolve(parent, args) {
-        const users = await (await fetch(routes.users)).json()
+      async resolve(parent, args, context: DB) {
+        const users = await context.users.findMany();
         return users;
       },
     },
@@ -49,14 +49,32 @@ const Mutation = new GraphQLObjectType({
         lastName: { type: GraphQLString },
         email: { type: GraphQLString },
       },
-      async resolve(parent, args: CreateUserDTO) {
-        const user = await (await fetch(routes.users, {
-          method: 'post',
-          body: JSON.stringify(args),
-          headers: {
-            'Content-Type': 'application/json',
-          }
-        })).json();
+      async resolve(parent, args: CreateUserDTO, context: DB) {
+        const user = await context.users.create(args);
+        return user;
+      },
+    },
+    updateUser: {
+      type: UserType,
+      args: { 
+        id: { type: GraphQLString },
+        firstName: { type: GraphQLString },
+        lastName: { type: GraphQLString },
+        email: { type: GraphQLString },
+        subscribedToUserIds: { type: new GraphQLList(GraphQLString)},
+      },
+      async resolve(parent, args, context: DB) {
+        const user = await context.users.change(args.id, args as ChangeUserDTO);
+        return user;
+      },
+    },
+    deleteUser: {
+      type: UserType,
+      args: { 
+        id: { type: GraphQLString },
+      },
+      async resolve(parent, args, context: DB) {
+        const user = await context.users.change(args.id, args as ChangeUserDTO);
         return user;
       },
     },
@@ -67,10 +85,6 @@ const schema = new GraphQLSchema({
 	query: Query,
 	mutation: Mutation,
 });
-
-const routes = {
-  users: `http://127.0.0.1:3000/users`
-}
 
 type TgraphqlBodySchema = {
   query: string;
@@ -94,7 +108,7 @@ const plugin: FastifyPluginAsyncJsonSchemaToTs = async (
       return await graphql({
         schema: schema,
         source: query,
-        contextValue: fastify,
+        contextValue: fastify.db,
       });
 
     }
