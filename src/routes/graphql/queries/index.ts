@@ -1,6 +1,9 @@
 import { GraphQLList, GraphQLObjectType, GraphQLString } from "graphql";
 import DB from "../../../utils/DB/DB";
-import { MemberTypeType, PostType, ProfileType, UserType } from "../gqlTypes";
+import { MemberTypeType } from "../gqlTypes/memberTypes";
+import { PostType } from "../gqlTypes/posts";
+import { ProfileType } from "../gqlTypes/profiles";
+import { UserType } from "../gqlTypes/users";
 
 
 export const Query = new GraphQLObjectType({
@@ -10,8 +13,7 @@ export const Query = new GraphQLObjectType({
     user: {
       type: UserType,
       args: { id: { type: GraphQLString } },
-      async resolve(parent, args, context: DB, variables) {
-        //console.log(variables.variableValues);
+      async resolve(parent, args, context: DB) {
         const user = await context.users.findOne({key: "id", equals: args.id});
         return user;
       },
@@ -28,7 +30,7 @@ export const Query = new GraphQLObjectType({
     post: {
       type: PostType,
       args: { id: { type: GraphQLString } },
-      async resolve(parent, args, context: DB, variables) {
+      async resolve(parent, args, context: DB) {
         const post = await context.posts.findOne({key: "id", equals: args.id});
         return post;
       },
@@ -45,7 +47,7 @@ export const Query = new GraphQLObjectType({
     profile: {
       type: ProfileType,
       args: { id: { type: GraphQLString } },
-      async resolve(parent, args, context: DB, variables) {
+      async resolve(parent, args, context: DB) {
         const post = await context.profiles.findOne({key: "id", equals: args.id});
         return post;
       },
@@ -62,7 +64,7 @@ export const Query = new GraphQLObjectType({
     memberType: {
       type: MemberTypeType,
       args: { id: { type: GraphQLString } },
-      async resolve(parent, args, context: DB, variables) {
+      async resolve(parent, args, context: DB) {
         const post = await context.memberTypes.findOne({key: "id", equals: args.id});
         return post;
       },

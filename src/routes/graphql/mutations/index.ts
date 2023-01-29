@@ -1,23 +1,14 @@
-import { GraphQLInt, GraphQLList, GraphQLNonNull, GraphQLObjectType, GraphQLString } from "graphql";
+import { GraphQLNonNull, GraphQLObjectType } from "graphql";
 import DB from "../../../utils/DB/DB";
-import { MemberTypeEntity } from "../../../utils/DB/entities/DBMemberTypes";
-import { PostEntity } from "../../../utils/DB/entities/DBPosts";
-import { ProfileEntity } from "../../../utils/DB/entities/DBProfiles";
-import { UserEntity } from "../../../utils/DB/entities/DBUsers";
 import { memberTypeUpdating } from "../../../utils/dbResolvers/memberTypes";
 import { postCreation, postUpdating } from "../../../utils/dbResolvers/posts";
 import { profileCreation, profileUpdating } from "../../../utils/dbResolvers/profiles";
 import { userSubscribing, userUnSubscribing, userUpdating } from "../../../utils/dbResolvers/users";
-import { MemberTypeType, PostType, ProfileType,  UserType } from "../gqlTypes";
+import { UserCreationType, UserSubscribingType, UserType, UserUnSubscribingType, UserUpdatingType } from "../gqlTypes/users";
+import { ProfileCreationType, ProfileType, ProfileUpdatingType } from "../gqlTypes/profiles";
+import { PostCreationType, PostType, PostUpdatingType } from "../gqlTypes/posts";
+import { MemberTypeType, MemberTypeUpdatingType } from "../gqlTypes/memberTypes";
 
-type CreateUserDTO = Omit<UserEntity, 'id' | 'subscribedToUserIds'>;
-type ChangeUserDTO = Partial<Omit<UserEntity, 'id'>>;
-type CreateProfileDTO = Omit<ProfileEntity, "id">;
-type ChangeProfileDTO = Partial<Omit<ProfileEntity, "id" | "userId">>;
-
-type CreatePostDTO = Omit<PostEntity, 'id'>;
-type ChangePostDTO = Partial<Omit<PostEntity, 'id' | 'userId'>>;
-type ChangeMemberTypeDTO = Partial<Omit<MemberTypeEntity, 'id'>>;
 
 export const Mutation = new GraphQLObjectType({
     name: 'Mutation',
@@ -26,12 +17,10 @@ export const Mutation = new GraphQLObjectType({
       createUser: {
         type: UserType,
         args: { 
-          firstName: { type: new GraphQLNonNull(GraphQLString) },
-          lastName: { type: new GraphQLNonNull(GraphQLString) },
-          email: { type: new GraphQLNonNull(GraphQLString) },
+          data: {type: new GraphQLNonNull(UserCreationType) },
         },
-        async resolve(parent, args: CreateUserDTO, context: DB) {
-          const user = await context.users.create(args);
+        async resolve(parent, args, context: DB) {
+          const user = await context.users.create(args.data);
           return user;
         },
       },
@@ -39,14 +28,10 @@ export const Mutation = new GraphQLObjectType({
       updateUser: {
         type: UserType,
         args: { 
-          id: { type: new GraphQLNonNull(GraphQLString) },
-          firstName: { type: GraphQLString },
-          lastName: { type: GraphQLString },
-          email: { type: GraphQLString },
-          subscribedToUserIds: { type: new GraphQLList(GraphQLString)},
+          data: { type: new GraphQLNonNull(UserUpdatingType) },
         },
         async resolve(parent, args, context: DB) {
-          const query = await userUpdating(context, args.id, args as ChangeUserDTO);
+          const query = await userUpdating(context, args.data.id, args.data);
           if (query instanceof Error) {
             throw query;
           }
@@ -57,17 +42,10 @@ export const Mutation = new GraphQLObjectType({
       createProfile: {
         type: ProfileType,
         args: { 
-          avatar: { type: new GraphQLNonNull(GraphQLString) },
-          sex: { type: new GraphQLNonNull(GraphQLString) },
-          birthday: { type: new GraphQLNonNull(GraphQLInt) },
-          country: { type: new GraphQLNonNull(GraphQLString) },
-          street: { type: new GraphQLNonNull(GraphQLString) },
-          city: { type: new GraphQLNonNull(GraphQLString) },
-          memberTypeId: { type: new GraphQLNonNull(GraphQLString) },
-          userId: { type: new GraphQLNonNull(GraphQLString) },
+          data: { type: new GraphQLNonNull(ProfileCreationType) },
         },
         async resolve(parent, args, context: DB) {
-          const query = profileCreation(context, args as CreateProfileDTO);
+          const query = profileCreation(context, args.data);
           if (query instanceof Error) {
             throw query;
           }
@@ -78,18 +56,10 @@ export const Mutation = new GraphQLObjectType({
       updateProfile: {
         type: ProfileType,
         args: { 
-          id: { type: new GraphQLNonNull(GraphQLString) },
-          avatar: { type: GraphQLString },
-          sex: { type: GraphQLString },
-          birthday: { type: GraphQLInt },
-          country: { type: GraphQLString },
-          street: { type: GraphQLString },
-          city: { type: GraphQLString },
-          memberTypeId: { type: GraphQLString },
-          userId: { type: GraphQLString },
+          data: { type: new GraphQLNonNull(ProfileUpdatingType) },
         },
         async resolve(parent, args, context: DB) {
-          const query = profileUpdating(context, args.id, args as ChangeProfileDTO);
+          const query = profileUpdating(context, args.data.id, args.data);
           if (query instanceof Error) {
             throw query;
           }
@@ -100,12 +70,10 @@ export const Mutation = new GraphQLObjectType({
       createPost: {
         type: PostType,
         args: { 
-          title: { type: new GraphQLNonNull(GraphQLString) },
-          content: { type: new GraphQLNonNull(GraphQLString) },
-          userId: { type: new GraphQLNonNull(GraphQLString) },
+          data: { type: new GraphQLNonNull(PostCreationType) },
         },
-        async resolve(parent, args: CreatePostDTO, context: DB) {
-          const query = await postCreation(context, args);
+        async resolve(parent, args, context: DB) {
+          const query = await postCreation(context, args.data);
           if (query instanceof Error) {
             throw query;
           }
@@ -116,12 +84,10 @@ export const Mutation = new GraphQLObjectType({
       updatePost: {
         type: PostType,
         args: { 
-          id: { type: new GraphQLNonNull(GraphQLString) },
-          title: { type: GraphQLString },
-          content: { type: GraphQLString },
+          data: { type: new GraphQLNonNull(PostUpdatingType) },
         },
         async resolve(parent, args, context: DB) {
-          const query = await postUpdating(context, args.id, args as ChangePostDTO);
+          const query = await postUpdating(context, args.data.id, args.data);
           if (query instanceof Error) {
             throw query;
           }
@@ -132,12 +98,10 @@ export const Mutation = new GraphQLObjectType({
       updateMemberType: {
         type: MemberTypeType,
         args: { 
-          id: { type: new GraphQLNonNull(GraphQLString) },
-          discount: { type: GraphQLInt },
-          monthPostsLimit: { type: GraphQLInt },
+          data: { type: new GraphQLNonNull(MemberTypeUpdatingType) },
         },
         async resolve(parent, args, context: DB) {
-          const query = await memberTypeUpdating(context, args.id, args as ChangeMemberTypeDTO);
+          const query = await memberTypeUpdating(context, args.data.id, args.data );
           if (query instanceof Error) {
             throw query;
           }
@@ -148,15 +112,10 @@ export const Mutation = new GraphQLObjectType({
       subscribeUser: {
         type: UserType,
         args: { 
-          id: { type: new GraphQLNonNull(GraphQLString) },
-          subscriberId: { type: new GraphQLNonNull(GraphQLString) },
-          firstName: { type: GraphQLString },
-          lastName: { type: GraphQLString },
-          email: { type: GraphQLString },
-          subscribedToUserIds: { type: new GraphQLList(GraphQLString)},
+          data: { type: new GraphQLNonNull(UserSubscribingType) },
         },
         async resolve(parent, args, context: DB) {
-          const query = await userSubscribing(context, args.id, args.subscriberId);
+          const query = await userSubscribing(context, args.data.user1ID, args.data.user2ID);
           if (query instanceof Error) {
             throw query;
           }
@@ -167,18 +126,16 @@ export const Mutation = new GraphQLObjectType({
       unSubscribeUser: {
         type: UserType,
         args: { 
-          id: { type: new GraphQLNonNull(GraphQLString) },
-          subscriberId: { type: new GraphQLNonNull(GraphQLString) },
+          data: { type: new GraphQLNonNull(UserUnSubscribingType) },
         },
         async resolve(parent, args, context: DB) {
-          const query = await userUnSubscribing(context, args.id, args.subscriberId );
+          const query = await userUnSubscribing(context, args.data.user1ID, args.data.user2ID );
           if (query instanceof Error) {
             throw query;
           }
           return query;
         },
       },
-
 
     }
   });
