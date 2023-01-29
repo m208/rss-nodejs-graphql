@@ -1,4 +1,4 @@
-import { GraphQLList, GraphQLObjectType, GraphQLString } from "graphql";
+import { GraphQLList, GraphQLNonNull, GraphQLObjectType, GraphQLString } from "graphql";
 import DB from "../../../utils/DB/DB";
 import { MemberTypeType } from "../gqlTypes/memberTypes";
 import { PostType } from "../gqlTypes/posts";
@@ -12,7 +12,7 @@ export const Query = new GraphQLObjectType({
 
     user: {
       type: UserType,
-      args: { id: { type: GraphQLString } },
+      args: { id: { type: new GraphQLNonNull(GraphQLString) } },
       async resolve(parent, args, context: DB) {
         const user = await context.users.findOne({key: "id", equals: args.id});
         return user;
@@ -26,6 +26,54 @@ export const Query = new GraphQLObjectType({
         return users;
       },
     },
+
+    usersWithContent: {
+      type: new GraphQLList(UserType),
+      async resolve(parent, args, context: DB) {
+        const users = await context.users.findMany();
+
+        const content = users.map(async user => {
+          const posts = await context.posts.findMany({key: "userId", equals: user.id});
+          const profile = await context.profiles.findOne({key: "userId", equals: user.id});
+          const memberType = await context.memberTypes.findOne({key: "id", equals: user.id})
+          return {
+            ...user,
+            posts,
+            profile,
+            memberType
+          }
+        })
+
+        return content;
+      }
+    },
+
+    userWithContent: {
+      type: UserType,
+      args: { id: { type: new GraphQLNonNull(GraphQLString) } },
+      async resolve(parent, args, context: DB) {
+        const user = await context.users.findOne({key: "id", equals: args.id});
+        if (!user) return;
+
+        const posts = await context.posts.findMany({key: "userId", equals: user.id});
+        const profile = await context.profiles.findOne({key: "userId", equals: user.id});
+        const memberType = await context.memberTypes.findOne({key: "id", equals: user.id})
+
+        return {
+          ...user,
+          posts,
+          profile,
+          memberType
+        }
+
+      }
+    },
+
+
+
+
+
+
 
     post: {
       type: PostType,
@@ -77,6 +125,8 @@ export const Query = new GraphQLObjectType({
         return posts;
       },
     },
+
+
 
     
   }

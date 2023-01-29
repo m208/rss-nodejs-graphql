@@ -1,4 +1,7 @@
 import { GraphQLObjectType, GraphQLString, GraphQLList, GraphQLInputObjectType, GraphQLNonNull } from 'graphql';
+import { MemberTypeType } from './memberTypes';
+import { PostType } from './posts';
+import { ProfileType } from './profiles';
 
 export const UserType = new GraphQLObjectType({
     name: 'User',
@@ -9,7 +12,9 @@ export const UserType = new GraphQLObjectType({
       email: { type: GraphQLString },
       subscribedToUserIds: { type: new GraphQLList(GraphQLString)},
       
-      subscriberId: {type: GraphQLString}
+      posts: {type: new GraphQLList(PostType)},
+      profile: {type: ProfileType},
+      memberType: {type: MemberTypeType}
     }),
 });
 
