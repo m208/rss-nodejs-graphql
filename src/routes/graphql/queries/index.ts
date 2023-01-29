@@ -36,7 +36,7 @@ export const Query = new GraphQLObjectType({
         const content = users.map(async user => {
           const posts = await context.posts.findMany({key: "userId", equals: user.id});
           const profile = await context.profiles.findOne({key: "userId", equals: user.id});
-          const memberType = await context.memberTypes.findOne({key: "id", equals: user.id})
+          const memberType = await context.memberTypes.findOne({key: "id", equals: (profile?.memberTypeId || '')})
           return {
             ...user,
             posts,
