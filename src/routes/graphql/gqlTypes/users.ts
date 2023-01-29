@@ -11,12 +11,27 @@ export const UserType = new GraphQLObjectType({
       lastName: { type: GraphQLString },
       email: { type: GraphQLString },
       subscribedToUserIds: { type: new GraphQLList(GraphQLString)},
+    }),
+});
+
+export const UserWithContentType = new GraphQLObjectType({
+    name: 'UserWithContent',
+    fields: () => ({
+      id: { type: GraphQLString },
+      firstName: { type: GraphQLString },
+      lastName: { type: GraphQLString },
+      email: { type: GraphQLString },
+      subscribedToUserIds: { type: new GraphQLList(GraphQLString)},
       
       posts: {type: new GraphQLList(PostType)},
       profile: {type: ProfileType},
-      memberType: {type: MemberTypeType}
+      memberType: {type: MemberTypeType},
+
+      userSubscribedTo: {type: new GraphQLList(UserType)},
+      subscribedToUser: {type: new GraphQLList(UserType)},
     }),
 });
+
 
 export const UserCreationType = new GraphQLInputObjectType({
     name: 'UserCreation',

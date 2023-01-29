@@ -3,7 +3,7 @@ import DB from "../../../utils/DB/DB";
 import { MemberTypeType } from "../gqlTypes/memberTypes";
 import { PostType } from "../gqlTypes/posts";
 import { ProfileType } from "../gqlTypes/profiles";
-import { UserType } from "../gqlTypes/users";
+import { UserType, UserWithContentType } from "../gqlTypes/users";
 
 
 export const Query = new GraphQLObjectType({
@@ -28,7 +28,8 @@ export const Query = new GraphQLObjectType({
     },
 
     usersWithContent: {
-      type: new GraphQLList(UserType),
+      type: new GraphQLList(UserWithContentType),
+      
       async resolve(parent, args, context: DB) {
         const users = await context.users.findMany();
 
@@ -49,7 +50,8 @@ export const Query = new GraphQLObjectType({
     },
 
     userWithContent: {
-      type: UserType,
+      type: UserWithContentType,
+      
       args: { id: { type: new GraphQLNonNull(GraphQLString) } },
       async resolve(parent, args, context: DB) {
         const user = await context.users.findOne({key: "id", equals: args.id});
@@ -69,10 +71,53 @@ export const Query = new GraphQLObjectType({
       }
     },
 
+    usersWithSubsAndProfiles: {
+      type: new GraphQLList(UserWithContentType),
+      
+      async resolve(parent, args, context: DB) {
+        const users = await context.users.findMany();
 
+        const data = users.map(async user => {
+          const profile = await context.profiles.findOne({key: "userId", equals: user.id});
 
+          const userSubscribedTo = [...users].filter(usr=>{
+            return usr.subscribedToUserIds.includes(user.id)
+          })
 
+          return {
+            ...user,
+            profile,
+            userSubscribedTo
+          }
+        })
 
+        return data;
+
+      }
+    },
+
+    userWithSubsAndPosts: {
+      type: UserWithContentType,
+      args: { id: { type: new GraphQLNonNull(GraphQLString) } },
+      
+      async resolve(parent, args, context: DB) {
+        const user = await context.users.findOne({key: "id", equals: args.id});
+        if (!user) return;
+
+        const posts = await context.posts.findMany({key: "userId", equals: user.id});
+        
+        const subscribedToUser = await context.users.findMany({
+          key: "subscribedToUserIds", inArray: user.id
+        });
+
+        return {
+          ...user,
+          posts,
+          subscribedToUser
+        }
+
+      }
+    },
 
 
     post: {
