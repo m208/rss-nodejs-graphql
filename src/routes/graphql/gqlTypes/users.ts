@@ -32,6 +32,20 @@ export const UserWithContentType = new GraphQLObjectType({
     }),
 });
 
+export const UserWithSubsType = new GraphQLObjectType({
+    name: 'UserWithSubs',
+    fields: () => ({
+      id: { type: GraphQLString },
+      firstName: { type: GraphQLString },
+      lastName: { type: GraphQLString },
+      email: { type: GraphQLString },
+      subscribedToUserIds: { type: new GraphQLList(GraphQLString)},
+      
+      userSubscribedTo: {type: new GraphQLList(UserWithContentType)},
+      subscribedToUser: {type: new GraphQLList(UserWithContentType)},
+    }),
+});
+
 
 export const UserCreationType = new GraphQLInputObjectType({
     name: 'UserCreation',

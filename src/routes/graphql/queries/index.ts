@@ -3,7 +3,7 @@ import DB from "../../../utils/DB/DB";
 import { MemberTypeType } from "../gqlTypes/memberTypes";
 import { PostType } from "../gqlTypes/posts";
 import { ProfileType } from "../gqlTypes/profiles";
-import { UserType, UserWithContentType } from "../gqlTypes/users";
+import { UserType, UserWithContentType, UserWithSubsType } from "../gqlTypes/users";
 
 
 export const Query = new GraphQLObjectType({
@@ -115,6 +115,48 @@ export const Query = new GraphQLObjectType({
           posts,
           subscribedToUser
         }
+
+      }
+    },
+
+    usersWithSubs: {
+      type: new GraphQLList(UserWithSubsType),
+      
+      async resolve(parent, args, context: DB) {
+        const users = await context.users.findMany();
+
+        const data = users.map(async user => {
+
+          const userSubscribedTo = [...users].filter(usr=>{
+            return usr.subscribedToUserIds.includes(user.id)
+          }).map(item=>({
+            ...item,
+            userSubscribedTo: [...users].filter(usr=>{
+              return usr.subscribedToUserIds.includes(item.id)
+            })
+          })
+          )
+
+          const subs = await context.users.findMany({
+            key: "subscribedToUserIds", inArray: user.id
+          })
+
+          const subscribedToUser = subs.map(async item=>({
+              ...item,
+              subscribedToUser: await context.users.findMany({
+                key: "subscribedToUserIds", inArray: user.id
+              })
+          }))
+
+
+          return {
+            ...user,
+            userSubscribedTo,
+            subscribedToUser
+          }
+        })
+
+        return data;
 
       }
     },
