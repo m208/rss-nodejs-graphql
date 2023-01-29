@@ -23,9 +23,27 @@ export const UserWithContentType = new GraphQLObjectType({
       email: { type: GraphQLString },
       subscribedToUserIds: { type: new GraphQLList(GraphQLString)},
       
-      posts: {type: new GraphQLList(PostType)},
-      profile: {type: ProfileType},
-      memberType: {type: MemberTypeType},
+      posts: {
+        type: new GraphQLList(PostType),
+        resolve: async (parent, args, context) => {
+          return await context.posts.findMany({key: "userId", equals: parent.id});
+        }
+      },
+
+      profile: {
+        type: ProfileType,
+        resolve: async (parent, args, context) => {
+          return await context.profiles.findOne({key: "userId", equals: parent.id});
+        }
+      },
+
+      memberType: {
+        type: MemberTypeType,
+        resolve: async (parent, args, context) => {
+          const profile = await context.profiles.findOne({key: "userId", equals: parent.id});
+          return await context.memberTypes.findOne({key: "id", equals: profile.memberTypeId});
+        }
+      },
 
       userSubscribedTo: {type: new GraphQLList(UserType)},
       subscribedToUser: {type: new GraphQLList(UserType)},

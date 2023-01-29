@@ -29,45 +29,16 @@ export const Query = new GraphQLObjectType({
 
     usersWithContent: {
       type: new GraphQLList(UserWithContentType),
-      
       async resolve(parent, args, context: DB) {
-        const users = await context.users.findMany();
-
-        const content = users.map(async user => {
-          const posts = await context.posts.findMany({key: "userId", equals: user.id});
-          const profile = await context.profiles.findOne({key: "userId", equals: user.id});
-          const memberType = await context.memberTypes.findOne({key: "id", equals: (profile?.memberTypeId || '')})
-          return {
-            ...user,
-            posts,
-            profile,
-            memberType
-          }
-        })
-
-        return content;
+        return await context.users.findMany();
       }
     },
 
     userWithContent: {
       type: UserWithContentType,
-      
       args: { id: { type: new GraphQLNonNull(GraphQLString) } },
       async resolve(parent, args, context: DB) {
-        const user = await context.users.findOne({key: "id", equals: args.id});
-        if (!user) return;
-
-        const posts = await context.posts.findMany({key: "userId", equals: user.id});
-        const profile = await context.profiles.findOne({key: "userId", equals: user.id});
-        const memberType = await context.memberTypes.findOne({key: "id", equals: user.id})
-
-        return {
-          ...user,
-          posts,
-          profile,
-          memberType
-        }
-
+        return await context.users.findOne({key: "id", equals: args.id});
       }
     },
 
