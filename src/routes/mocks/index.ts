@@ -57,7 +57,7 @@ const plugin: FastifyPluginAsyncJsonSchemaToTs = async (
             }
         }
 
-        for (let i = 0; i < usersId.length-1; i++) {
+        for (let i = 1; i < usersId.length-1; i++) {
             subscribe(usersId[usersId.length-1], usersId[i]);
         }
 

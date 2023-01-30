@@ -5,7 +5,7 @@ import { PostType } from "../gqlTypes/posts";
 import { ProfileType } from "../gqlTypes/profiles";
 import { 
   // UsersWithSubsAndProfilesType, 
-  UsersWithSubsType, 
+  // UsersWithSubsType, 
   UserType, 
   UserWithContentType, 
   // UserWithSubsAndPostsType 
@@ -108,7 +108,8 @@ export const Query = new GraphQLObjectType({
     },
 
     usersWithSubs: {
-      type: new GraphQLList(UsersWithSubsType),
+      type: new GraphQLList(UserWithContentType),
+      //type: new GraphQLList(UsersWithSubsType),
       
       async resolve(parent, args, context: AppDB) {
         const users = await context.db.users.findMany();

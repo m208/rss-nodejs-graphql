@@ -1,7 +1,9 @@
 
 import DataLoader = require('dataloader');
 import { GraphQLObjectType, GraphQLString, GraphQLList, GraphQLInputObjectType, GraphQLNonNull } from 'graphql';
+import { MemberTypeEntity } from '../../../utils/DB/entities/DBMemberTypes';
 import { PostEntity } from '../../../utils/DB/entities/DBPosts';
+import { ProfileEntity } from '../../../utils/DB/entities/DBProfiles';
 import { UserEntity } from '../../../utils/DB/entities/DBUsers';
 import { MemberTypeType } from './memberTypes';
 import { PostType } from './posts';
@@ -55,7 +57,7 @@ export const UserWithContentType = new GraphQLObjectType({
             dataloaders.set(info.fieldNodes, dl);
           }
           return dl.load(parent.id);
-
+          //  ----------------
         }
       },
 
@@ -69,13 +71,11 @@ export const UserWithContentType = new GraphQLObjectType({
           // DATALOADER!
           const { dataloaders } = context;
           let dl = dataloaders.get({...info.fieldNodes, 'data': 'profile'});
-
+ 
           if (!dl) {
             dl = new DataLoader(async (keys: readonly string[]) => {
-              const items: PostEntity[] = await context.db.profiles.findMany({ key: "userId", equalsAnyOf: keys })
+              const items: ProfileEntity[] = await context.db.profiles.findMany({ key: "userId", equalsAnyOf: keys })
               const sortedInIdsOrder = keys.map(id => items.find(x => x.userId === id));
-              console.log(sortedInIdsOrder);
-              
               return sortedInIdsOrder;
             });
             dataloaders.set({...info.fieldNodes, 'data': 'profile'}, dl);
@@ -86,7 +86,7 @@ export const UserWithContentType = new GraphQLObjectType({
           let dl2 = dataloaders.get({...info.fieldNodes, 'data': 'membertype'});
           if (!dl2) {
             dl2 = new DataLoader(async (keys: readonly string[]) => {
-              const items: PostEntity[] = await context.db.memberTypes.findMany({ key: "id", equalsAnyOf: keys })
+              const items: MemberTypeEntity[] = await context.db.memberTypes.findMany({ key: "id", equalsAnyOf: keys })
               const sortedInIdsOrder = keys.map(id => items.find(x => x.id === id));
               return sortedInIdsOrder;
             });
@@ -95,26 +95,63 @@ export const UserWithContentType = new GraphQLObjectType({
 
           return dl2.load(profile.memberTypeId);
 
+          //  -----------
         }
       },
 
       userSubscribedTo: {
         type: new GraphQLList(UserWithContentType),
-        resolve: async (parent, args, context) => {
-          return await context.db.users.findMany({
-            key: "subscribedToUserIds", inArray: parent.id
-          });
+        resolve: async (parent, args, context, info) => {
+          // DEFAULT
+          // return await context.db.users.findMany({
+          //   key: "subscribedToUserIds", inArray: parent.id
+          // });
+          
+          // DATALOADER!
+          const { dataloaders } = context;
+          let dl = dataloaders.get(info.fieldNodes);
+
+          if (!dl) {
+            dl = new DataLoader(async (keys: readonly string[]) => {
+              const items: UserEntity[] = await context.db.users.findMany({ key: "subscribedToUserIds", inArrayAnyOf: keys })
+              const sortedInIdsOrder = keys.map(id => [...items].filter(x => x.subscribedToUserIds.includes(id)));
+              return sortedInIdsOrder;
+            });
+
+            dataloaders.set(info.fieldNodes, dl);
+          }
+          return dl.load(parent.id);
+          //  ----------------  OK
+
         }
       },
 
       subscribedToUser: {
         type: new GraphQLList(UserWithContentType),
-        resolve: async (parent, args, context) => {
-          console.log(parent.subscribedToUserIds);
+        resolve: async (parent, args, context, info) => {
+          //console.log('subscribedToUser');
           
-          return await context.db.users.findMany({
-            key: "id", equalsAnyOf: parent.subscribedToUserIds
-          });
+          // DEFAULT
+          // return await context.db.users.findMany({
+          //   key: "id", equalsAnyOf: parent.subscribedToUserIds
+          // });
+          
+          // DATALOADER!
+          const { dataloaders } = context;
+          //let dl = dataloaders.get({...info.fieldNodes, "data": "subscribedToUser"});
+          let dl = dataloaders.get(info.fieldNodes);
+
+          if (!dl) {
+            dl = new DataLoader(async (keys: readonly string[]) => {
+              const items: UserEntity[] = await context.db.users.findMany({ key: "id", equalsAnyOf: keys })
+              const sortedInIdsOrder = keys.map(id => [...items].filter(x => x.id === id));
+              return sortedInIdsOrder;
+            });
+
+            dataloaders.set(info.fieldNodes, dl);
+          }
+          return dl.load(...parent.subscribedToUserIds);
+          //  ----------------   OK       
         }
       },
       
