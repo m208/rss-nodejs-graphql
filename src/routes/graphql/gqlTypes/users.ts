@@ -81,7 +81,7 @@ export const UserWithContentType = new GraphQLObjectType({
             dataloaders.set({...info.fieldNodes, 'data': 'profile'}, dl);
           }
           const profile = await dl.load(parent.id);
-          
+          if (!profile) return null;
           
           let dl2 = dataloaders.get({...info.fieldNodes, 'data': 'membertype'});
           if (!dl2) {
