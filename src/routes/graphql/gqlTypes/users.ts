@@ -38,7 +38,10 @@ export const UserWithContentType = new GraphQLObjectType({
       profile: {
         type: ProfileType,
         resolve: async (parent, args, context, info) => {
-          // HERE DATALOADER!
+          // DEFAULT
+          // return await context.db.profiles.findOne({key: "userId", equals: parent.id});
+
+          // DATALOADER!
           const { dataloaders } = context;
           let dl = dataloaders.get(info.fieldNodes);
 
@@ -53,19 +56,45 @@ export const UserWithContentType = new GraphQLObjectType({
           }
           return dl.load(parent.id);
 
-          // default
-          return await context.db.profiles.findOne({key: "userId", equals: parent.id});
         }
       },
 
       memberType: {
         type: MemberTypeType,
-        resolve: async (parent, args, context) => {
-          const profile = await context.db.profiles.findOne({key: "userId", equals: parent.id});
-          //const profile = (await context.cachedDB.profiles.load(parent.id))[0];
-          return await context.db.memberTypes.findOne({key: "id", equals: profile.memberTypeId});
-          //return null
-          //return (await context.cachedDB.memberTypes.load(profile.memberTypeId))[0];
+        resolve: async (parent, args, context, info) => {
+          // DEFAULT
+          // const profile = await context.db.profiles.findOne({key: "userId", equals: parent.id});
+          // return await context.db.memberTypes.findOne({key: "id", equals: profile.memberTypeId});
+
+          // DATALOADER!
+          const { dataloaders } = context;
+          let dl = dataloaders.get({...info.fieldNodes, 'data': 'profile'});
+
+          if (!dl) {
+            dl = new DataLoader(async (keys: readonly string[]) => {
+              const items: PostEntity[] = await context.db.profiles.findMany({ key: "userId", equalsAnyOf: keys })
+              const sortedInIdsOrder = keys.map(id => items.find(x => x.userId === id));
+              console.log(sortedInIdsOrder);
+              
+              return sortedInIdsOrder;
+            });
+            dataloaders.set({...info.fieldNodes, 'data': 'profile'}, dl);
+          }
+          const profile = await dl.load(parent.id);
+          
+          
+          let dl2 = dataloaders.get({...info.fieldNodes, 'data': 'membertype'});
+          if (!dl2) {
+            dl2 = new DataLoader(async (keys: readonly string[]) => {
+              const items: PostEntity[] = await context.db.memberTypes.findMany({ key: "id", equalsAnyOf: keys })
+              const sortedInIdsOrder = keys.map(id => items.find(x => x.id === id));
+              return sortedInIdsOrder;
+            });
+            dataloaders.set({...info.fieldNodes, 'data': 'membertype'}, dl2);
+          }
+
+          return dl2.load(profile.memberTypeId);
+
         }
       },
 
