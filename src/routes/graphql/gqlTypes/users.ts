@@ -82,7 +82,7 @@ export const UserWithContentType = new GraphQLObjectType({
           }
           const profile = await dl.load(parent.id);
           if (!profile) return null;
-          
+
           let dl2 = dataloaders.get({...info.fieldNodes, 'data': 'membertype'});
           if (!dl2) {
             dl2 = new DataLoader(async (keys: readonly string[]) => {
@@ -129,7 +129,7 @@ export const UserWithContentType = new GraphQLObjectType({
       subscribedToUser: {
         type: new GraphQLList(UserWithContentType),
         resolve: async (parent, args, context, info) => {
-          //console.log('subscribedToUser');
+          if (parent.subscribedToUserIds.length === 0) return Array(0);
           
           // DEFAULT
           // return await context.db.users.findMany({
