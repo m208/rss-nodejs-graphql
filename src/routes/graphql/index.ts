@@ -46,11 +46,11 @@ const plugin: FastifyPluginAsyncJsonSchemaToTs = async (
       return await graphql({
         schema: schema,
         source: query!,
-        contextValue: fastify.db,
-        // contextValue: {
-        //   db: fastify.db,
-        //   dataloaders: new WeakMap(),
-        // },
+        // contextValue: fastify.db,
+        contextValue: {
+          db: fastify.db,
+          dataloaders: new WeakMap(),
+        },
         variableValues: variables
       });
 
