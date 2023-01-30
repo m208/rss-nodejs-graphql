@@ -110,9 +110,10 @@ export const UserWithContentType = new GraphQLObjectType({
       subscribedToUser: {
         type: new GraphQLList(UserWithContentType),
         resolve: async (parent, args, context) => {
-
+          console.log(parent.subscribedToUserIds);
+          
           return await context.db.users.findMany({
-            key: "subscribedToUserIds", inArrayAnyOf: parent.subscribedToUserIds
+            key: "id", equalsAnyOf: parent.subscribedToUserIds
           });
         }
       },
@@ -279,14 +280,18 @@ export const UsersWithSubsType = new GraphQLObjectType({
         type: new GraphQLList(UserWithContentType),
         resolve: async (parent, args, context) => {
           // HERE DATALOADER!?
-          return await context.db.users.findMany({key: "subscribedToUserIds", inArray: parent.id}); // here is ok
+          return await context.db.users.findMany({
+            key: "subscribedToUserIds", inArray: parent.id
+          }); // here is ok
         }
       },
       
       userSubscribedTo: {
         type: new GraphQLList(UserWithContentType),
         resolve: async (parent, args, context, info) => {
-          return await context.db.users.findMany({key: "subscribedToUserIds", inArray: parent.id}); //must be changed
+          return await context.db.users.findMany({
+            key: "id", equalsAnyOf: parent.subscribedToUserIds
+          }); //must be changed
         }
       },
 
