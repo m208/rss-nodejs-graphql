@@ -39,7 +39,8 @@ const plugin: FastifyPluginAsyncJsonSchemaToTs = async (
         const maxPostsPerUser = 5;
         for (const [index, value] of usersId.entries()) {
 
-            const randomCount = Math.floor(Math.random() * maxPostsPerUser);
+            const randomCount = maxPostsPerUser;
+            //const randomCount = Math.floor(Math.random() * maxPostsPerUser);
             
             for (let i = 0; i < randomCount; i++) {
                 postCounter += 1;
@@ -56,7 +57,7 @@ const plugin: FastifyPluginAsyncJsonSchemaToTs = async (
             }
         }
 
-        for (let i = 0; i < usersId.length-1; i++) {
+        for (let i = 1; i < usersId.length-1; i++) {
             subscribe(usersId[usersId.length-1], usersId[i]);
         }
 
